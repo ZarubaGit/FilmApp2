@@ -7,9 +7,11 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
+import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.koin.core.parameter.parametersOf
 import ru.yandex.practicum.moviessearch.R
+import ru.yandex.practicum.moviessearch.core.navigation.Router
 import ru.yandex.practicum.moviessearch.databinding.FragmentAboutBinding
 import ru.yandex.practicum.moviessearch.domain.models.MovieDetails
 import ru.yandex.practicum.moviessearch.presentation.details.AboutState
@@ -27,6 +29,8 @@ class AboutFragment : Fragment() {
             }
         }
     }
+
+    private val router: Router by inject()
 
     private val aboutViewModel: AboutViewModel by viewModel {
         parametersOf(requireArguments().getString(MOVIE_ID))
@@ -51,12 +55,10 @@ class AboutFragment : Fragment() {
         }
         binding.showCastButton.setOnClickListener {
             parentFragment?.parentFragmentManager?.commit {
-                replace(
-                    R.id.rootFragmentContainerView,
+                router.openFragment(
                     MoviesCastFragment.newInstance(
                         movieId = requireArguments().getString(MOVIE_ID).orEmpty()
-                    ),
-                    MoviesCastFragment.TAG
+                    )
                 )
                 addToBackStack(MoviesCastFragment.TAG)
             }
