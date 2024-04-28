@@ -14,6 +14,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import org.koin.android.ext.android.inject
@@ -36,16 +37,11 @@ class MoviesFragment: Fragment() {
 
     private val viewModel by viewModel<MoviesViewModel>()
 
-    private val router: Router by inject()
 
     private val adapter = MoviesAdapter {movie ->
         if (clickDebounce()) {
-            router.openFragment(
-                    DetailsFragment.newInstance(
-                        movieId = movie.id,
-                        posterUrl = movie.id
-                    )
-                )
+            findNavController().navigate(R.id.action_moviesFragment_to_detailsFragment2,
+                DetailsFragment.createArgs(movie.id, movie.image))
             }
         }
 
