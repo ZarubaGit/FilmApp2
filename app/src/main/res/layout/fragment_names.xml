@@ -1,10 +1,10 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/white"
-    xmlns:tools="http://schemas.android.com/tools"
-    tools:context="ru.yandex.practicum.moviessearch.ui.movies.MoviesFragment">
+    tools:context="ru.yandex.practicum.moviessearch.ui.names.NamesFragment">
 
     <EditText android:id="@+id/queryInput"
         android:layout_width="match_parent"
@@ -25,9 +25,10 @@
             android:indeterminateTint="@color/black"
             android:visibility="gone"/>
 
-        <androidx.recyclerview.widget.RecyclerView android:id="@+id/locations"
+        <androidx.recyclerview.widget.RecyclerView android:id="@+id/personsList"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"/>
+            android:layout_height="match_parent"
+            tools:listitem="@layout/list_item_person"/>
 
         <TextView android:id="@+id/placeholderMessage"
             android:layout_width="300dp"

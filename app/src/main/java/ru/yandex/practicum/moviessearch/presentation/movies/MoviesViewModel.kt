@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModel
 import ru.yandex.practicum.moviessearch.R
 import ru.yandex.practicum.moviessearch.domain.api.MoviesInteractor
 import ru.yandex.practicum.moviessearch.domain.models.Movie
+import ru.yandex.practicum.moviessearch.presentation.SingleLiveEvent
 
 class MoviesViewModel(private val context: Context,
                       private val moviesInteractor: MoviesInteractor) : ViewModel() {
