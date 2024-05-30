@@ -3,42 +3,45 @@ package ru.yandex.practicum.moviessearch.data.network
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import ru.yandex.practicum.moviessearch.data.NetworkClient
 import ru.yandex.practicum.moviessearch.data.dto.MovieCastRequest
 import ru.yandex.practicum.moviessearch.data.dto.MovieDetailsRequest
 import ru.yandex.practicum.moviessearch.data.dto.MoviesSearchRequest
 import ru.yandex.practicum.moviessearch.data.dto.NamesSearchRequest
 import ru.yandex.practicum.moviessearch.data.dto.Response
+import kotlin.jvm.Throws
 
 class RetrofitNetworkClient(
     private val imdbService: IMDbApiService,
     private val context: Context,
 ) : NetworkClient {
 
-    override fun doRequest(dto: Any): Response {
+    override suspend fun doRequestSuspend(dto: Any): Response {
         if (isConnected() == false) {
             return Response().apply { resultCode = -1 }
         }
-        // Добавили ещё одну проверку
+
         if ((dto !is MoviesSearchRequest)
             && (dto !is MovieDetailsRequest)
             && (dto !is MovieCastRequest)
-            && (dto !is NamesSearchRequest)){
+            && (dto !is NamesSearchRequest)) {
             return Response().apply { resultCode = 400 }
         }
 
-        // Добавили в выражение when ещё одну ветку
-        val response = when (dto) {
-            is NamesSearchRequest -> imdbService.searchNames(dto.expression).execute()
-            is MoviesSearchRequest -> imdbService.searchMovies(dto.expression).execute()
-            is MovieDetailsRequest -> imdbService.getMovieDetails(dto.movieId).execute()
-            else -> imdbService.getFullCast((dto as MovieCastRequest).movieId).execute()
-        }
-        val body = response.body()
-        return if (body != null) {
-            body.apply { resultCode = response.code() }
-        } else {
-            Response().apply { resultCode = response.code() }
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = when (dto) {
+                    is NamesSearchRequest -> imdbService.searchNames(dto.expression)
+                    is MoviesSearchRequest -> imdbService.searchMovies(dto.expression)
+                    is MovieDetailsRequest -> imdbService.getMovieDetails(dto.movieId)
+                    else -> imdbService.getFullCast((dto as MovieCastRequest).movieId)
+                }
+                response.apply { resultCode = 200 }
+            } catch (e: Throwable) {
+                Response().apply { resultCode = 500 }
+            }
         }
     }
 

@@ -7,6 +7,10 @@ import android.os.SystemClock
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import ru.yandex.practicum.moviessearch.R
 import ru.yandex.practicum.moviessearch.domain.api.NamesInteractor
 import ru.yandex.practicum.moviessearch.domain.models.Person
@@ -31,6 +35,8 @@ class NamesViewModel(private val context: Context, private val namesInteractor: 
 
     private var latestSearchText: String? = null
 
+    private var searchJob: Job? = null
+
     override fun onCleared() {
         handler.removeCallbacksAndMessages(SEARCH_REQUEST_TOKEN)
     }
@@ -41,54 +47,58 @@ class NamesViewModel(private val context: Context, private val namesInteractor: 
         }
 
         this.latestSearchText = changedText
-        handler.removeCallbacksAndMessages(SEARCH_REQUEST_TOKEN)
 
-        val searchRunnable = Runnable {searchRequest(changedText)}
-
-        val postTime = SystemClock.uptimeMillis() + SEARCH_DEBOUNCE_DELAY
-        handler.postAtTime(
-            searchRunnable,
-            SEARCH_REQUEST_TOKEN,
-            postTime,
-        )
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            delay(SEARCH_DEBOUNCE_DELAY)
+            searchRequest(changedText)
+        }
     }
 
     private fun searchRequest(newSearchText: String) {
-        if(newSearchText.isNotEmpty()) {
+        if (newSearchText.isNotEmpty()) {
             renderState(NamesState.Loading)
 
-            namesInteractor.searchNames(newSearchText, object : NamesInteractor.NamesConsumer {
-                override fun consume(foundNames: List<Person>?, errorMessage: String?) {
-                    val person = mutableListOf<Person>()
-                    if (foundNames != null) {
-                        person.addAll(foundNames)
+            viewModelScope.launch {
+                namesInteractor
+                    .searchNames(newSearchText)
+                    .collect { pair ->
+                        processResult(pair.first, pair.second)
                     }
-                    when {
-                        errorMessage != null -> {
-                            renderState(
-                                NamesState.Error(
-                                    message = context.getString(R.string.something_went_wrong),
-                                )
-                            )
-                            showToast.postValue(errorMessage)
-                        }
-                        person.isEmpty() -> {
-                            renderState(
-                                NamesState.Empty(
-                                    message = context.getString(R.string.nothing_found),
-                                )
-                            )
-                        }
-                        else -> {
-                            renderState(
-                                NamesState.Content(
-                                    person = person,
-                                )
-                            )
-                        }
-                    }
-                }
-            })
+            }
+        }
+    }
+
+    private fun processResult(foundNames: List<Person>?, errorMessage: String?){
+        val person = mutableListOf<Person>()
+        if (foundNames != null) {
+            person.addAll(foundNames)
+        }
+        when {
+            errorMessage != null -> {
+                renderState(
+                    NamesState.Error(
+                        message = context.getString(R.string.something_went_wrong),
+                    )
+                )
+                showToast.postValue(errorMessage)
+            }
+
+            person.isEmpty() -> {
+                renderState(
+                    NamesState.Empty(
+                        message = context.getString(R.string.nothing_found),
+                    )
+                )
+            }
+
+            else -> {
+                renderState(
+                    NamesState.Content(
+                        person = person,
+                    )
+                )
+            }
         }
     }
 
