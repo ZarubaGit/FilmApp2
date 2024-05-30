@@ -11,7 +11,7 @@
         android:label="fragment_movies"
         tools:layout="@layout/fragment_movies" >
         <action
-            android:id="@+id/action_moviesFragment_to_detailsFragment2"
+            android:id="@+id/action_moviesFragment_to_detailsFragment"
             app:destination="@id/detailsFragment"
             app:enterAnim="@anim/slide_in_right"
             app:exitAnim="@anim/slide_out_left"

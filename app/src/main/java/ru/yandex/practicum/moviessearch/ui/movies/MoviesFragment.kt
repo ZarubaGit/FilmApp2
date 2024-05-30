@@ -14,9 +14,12 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import ru.yandex.practicum.moviessearch.R
@@ -26,36 +29,28 @@ import ru.yandex.practicum.moviessearch.domain.models.Movie
 import ru.yandex.practicum.moviessearch.presentation.movies.MoviesState
 import ru.yandex.practicum.moviessearch.presentation.movies.MoviesViewModel
 import ru.yandex.practicum.moviessearch.ui.details.DetailsFragment
+import ru.yandex.practicum.moviessearch.ui.root.RootActivity
+import ru.yandex.practicum.moviessearch.util.debounce
 
 class MoviesFragment: Fragment() {
 
     private lateinit var binding: FragmentMoviesBinding
 
     companion object {
-        private const val CLICK_DEBOUNCE_DELAY = 1000L
+        private const val CLICK_DEBOUNCE_DELAY = 500L
     }
 
     private val viewModel by viewModel<MoviesViewModel>()
 
 
-    private val adapter = MoviesAdapter {movie ->
-        if (clickDebounce()) {
-            findNavController().navigate(R.id.action_moviesFragment_to_detailsFragment2,
-                DetailsFragment.createArgs(movie.id, movie.image))
-            }
-        }
+    private var adapter: MoviesAdapter? = null
 
     private lateinit var queryInput: EditText
     private lateinit var placeholderMessage: TextView
     private lateinit var moviesList: RecyclerView
     private lateinit var progressBar: ProgressBar
     private lateinit var textWatcher: TextWatcher
-
-
-    private var isClickAllowed = true
-
-    private val handler = Handler(Looper.getMainLooper())
-
+    private lateinit var onMovieClickDebounce: (Movie) -> Unit
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -69,6 +64,11 @@ class MoviesFragment: Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        adapter = MoviesAdapter {movie ->
+            (activity as RootActivity).animateBottomNavigationView()
+            onMovieClickDebounce(movie)
+        }
+
         placeholderMessage = binding.placeholderMessage
         queryInput = binding.queryInput
         moviesList = binding.locations
@@ -76,6 +76,10 @@ class MoviesFragment: Fragment() {
 
         moviesList.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false)
         moviesList.adapter = adapter
+
+        onMovieClickDebounce = debounce<Movie>(CLICK_DEBOUNCE_DELAY, viewLifecycleOwner.lifecycleScope,
+            false) {movie -> findNavController().navigate(R.id.action_moviesFragment_to_detailsFragment,
+            DetailsFragment.createArgs(movie.id, movie.image)) }
 
         textWatcher = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
@@ -90,7 +94,7 @@ class MoviesFragment: Fragment() {
             override fun afterTextChanged(s: Editable?) {
             }
         }
-        textWatcher?.let { queryInput.addTextChangedListener(it) }
+        textWatcher.let { queryInput.addTextChangedListener(it) }
 
         viewModel.observeState().observe(viewLifecycleOwner) {
             render(it)
@@ -103,7 +107,9 @@ class MoviesFragment: Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        textWatcher?.let { queryInput.removeTextChangedListener(it) }
+        adapter = null
+        moviesList.adapter = null
+        textWatcher.let { queryInput.removeTextChangedListener(it) }
     }
 
     private fun showToast(additionalMessage: String?) {
@@ -142,17 +148,8 @@ class MoviesFragment: Fragment() {
         placeholderMessage.visibility = View.GONE
         progressBar.visibility = View.GONE
 
-        adapter.movies.clear()
-        adapter.movies.addAll(movies)
-        adapter.notifyDataSetChanged()
-    }
-
-    private fun clickDebounce(): Boolean {
-        val current = isClickAllowed
-        if (isClickAllowed) {
-            isClickAllowed = false
-            handler.postDelayed({ isClickAllowed = true }, CLICK_DEBOUNCE_DELAY)
-        }
-        return current
+        adapter?.movies?.clear()
+        adapter?.movies?.addAll(movies)
+        adapter?.notifyDataSetChanged()
     }
 }
