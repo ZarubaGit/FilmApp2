@@ -4,6 +4,7 @@
     <string name="search">Найти</string>
     <string name="nothing_found">Ничего не найдено</string>
     <string name="something_went_wrong">Что-то пошло не так</string>
+    <string name="nothing_found_yet">Вы еще ничего не искали</string>
 
     <string name="poster">ПОСТЕР</string>
     <string name="details">О ФИЛЬМЕ</string>

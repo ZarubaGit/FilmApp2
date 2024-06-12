@@ -3,10 +3,13 @@ package ru.yandex.practicum.moviessearch.data
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import ru.yandex.practicum.moviessearch.data.converters.MovieCastConverter
+import ru.yandex.practicum.moviessearch.data.converters.MovieDbConvertor
+import ru.yandex.practicum.moviessearch.data.db.AppDataBase
 import ru.yandex.practicum.moviessearch.data.dto.MovieCastRequest
 import ru.yandex.practicum.moviessearch.data.dto.MovieCastResponse
 import ru.yandex.practicum.moviessearch.data.dto.MovieDetailsRequest
 import ru.yandex.practicum.moviessearch.data.dto.MovieDetailsResponse
+import ru.yandex.practicum.moviessearch.data.dto.MovieDto
 import ru.yandex.practicum.moviessearch.data.dto.MoviesSearchRequest
 import ru.yandex.practicum.moviessearch.data.dto.MoviesSearchResponse
 import ru.yandex.practicum.moviessearch.domain.api.MoviesRepository
@@ -18,6 +21,8 @@ import ru.yandex.practicum.moviessearch.util.Resource
 class MoviesRepositoryImpl(
     private val networkClient: NetworkClient,
     private val movieCastConverter: MovieCastConverter,
+    private val appDataBase: AppDataBase,
+    private val movieDbConvertor: MovieDbConvertor
 ) : MoviesRepository {
 
     override fun searchMovies(expression: String): Flow<Resource<List<Movie>>> = flow {
@@ -28,9 +33,11 @@ class MoviesRepositoryImpl(
             }
             200 -> {
                 with(response as MoviesSearchResponse) {
-                    emit(Resource.Success(results.map {
+                    val data = results.map {
                         Movie(it.id, it.resultType, it.image, it.title, it.description)
-                    }))
+                    }
+                    saveMovie(results)
+                    emit(Resource.Success(data))
                 }
             }
             else -> {
@@ -78,6 +85,11 @@ class MoviesRepositoryImpl(
 
             }
         }
+    }
+
+    private suspend fun saveMovie(movies: List<MovieDto>) {
+        val movieEntities = movies.map { movie -> movieDbConvertor.map(movie) }
+        appDataBase.movieDao().insertMovies(movieEntities)
     }
 
 }

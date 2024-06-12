@@ -10,9 +10,14 @@
         android:icon="@drawable/ic_names"
         android:title="Persons"/>
     <item
+        android:id="@+id/historyFragment"
+        android:icon="@drawable/history_icon"
+        android:title="History"/>
+    <item
         android:id="@+id/infoFragment"
         android:icon="@drawable/ic_info"
         android:title="Info"/>
+
 
 
 
